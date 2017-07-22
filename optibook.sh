@@ -35,6 +35,12 @@ optibook.optimize() {
         # Uncompress file
         optibook.status "$1" "Decompressing archive"
         if optibook.decompress "$1" "$tmpdir" >>"$details" 2>&1; then
+            optibook.status "$1" "Cleaning up unnecessary files"
+            optibook.cleanUpGlobal "$tmpdir" >>"$details" 2>&1
+            optibook.status "$1" "Cleaning up unnecessary ePub files"
+            optibook.cleanUpEpub "$tmpdir" >>"$details" 2>&1
+            optibook.status "$1" "Cleaning up comic book archive"
+            optibook.cleanUpCB "$tmpdir" >>"$details" 2>&1
             optibook.status "$1" "Optimizing HTML"
             optibook.optimizeHtml "$tmpdir" >>"$details" 2>&1
             optibook.status "$1" "Optimizing CSS"
@@ -45,10 +51,6 @@ optibook.optimize() {
             optibook.optimizeJpegs "$tmpdir" >>"$details" 2>&1
             optibook.status "$1" "Optimizing PNGs"
             optibook.optimizePngs "$tmpdir" >>"$details" 2>&1
-            optibook.status "$1" "Cleaning up ePub"
-            optibook.cleanUpEpub "$tmpdir" >>"$details" 2>&1
-            optibook.status "$1" "Cleaning up comic book archive"
-            optibook.cleanUpCB "$tmpdir" >>"$details" 2>&1
             optibook.status "$1" "Recompressing archive"
             local tmpfile="$(mktemp -u --tmpdir "optibook.XXXXXX.zip")"
             if optibook.recompress "$tmpdir" "$tmpfile" >>"$details" 2>&1; then
@@ -131,6 +133,16 @@ optibook.optimizeHtml() {
             fi
         fi
     done
+}
+
+optibook.cleanUpGlobal() {
+    local d
+    for d in "$1"/**/__MACOSX "$1"/**/.DS_Store "$1"/**/Thumbs.db; do
+        if [[ -d "$d" ]] || [[ -f "$d" ]]; then
+            rm -r "$d"
+        fi
+    done
+    
 }
 
 optibook.cleanUpEpub() {
