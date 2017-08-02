@@ -156,7 +156,7 @@ optibook.cleanUpEpub() {
 
 optibook.cleanUpCB() {
     if ! optibook.isEpub "$1"; then
-        rm "$1"/**/zz* || true
+        rm "$1"/**/z* || true
     fi
 }
 
