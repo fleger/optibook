@@ -149,7 +149,7 @@ optibook.optimizeHtml() {
 
 optibook.cleanUpGlobal() {
     local d
-    for d in "$1"/**/__MACOSX "$1"/**/.DS_Store "$1"/**/Thumbs.db; do
+    for d in "$1"/**/__MACOSX "$1"/**/.DS_Store "$1"/**/Thumbs.db "$1"/**/.directory; do
         if [[ -d "$d" ]] || [[ -f "$d" ]]; then
             rm -r "$d"
         fi
