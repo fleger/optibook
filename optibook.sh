@@ -33,6 +33,19 @@ optibook.size() {
     fi
 }
 
+optibook.finalName() {
+    local f="$1"
+    local ext="$2"
+    
+    if [[ -d "$f" ]]; then
+        f="$(dirname "$f")/$(basename "$f")"
+        echo "FINAL NAME $f" >> "$OPTIBOOK_LOG"
+    else
+        f="${f%.*}"
+    fi
+    echo "$f.$ext"
+}
+
 optibook.optimize() {
     if [[ -s "$1" ]]; then
         local originalSize="$(optibook.size "$1")"
@@ -64,14 +77,17 @@ optibook.optimize() {
             if optibook.recompress "$tmpdir" "$tmpfile" >>"$OPTIBOOK_LOG" 2>&1; then
                 optimizedSize="$(optibook.size "$tmpfile")"
                 if [[ $optimizedSize -lt $originalSize ]]; then
-                    rm -r "$1" >>"$OPTIBOOK_LOG" 2>&1
                     local extension
                     if optibook.isEpub "$tmpdir"; then
                         extension=epub
                     else
                         extension=cbz
                     fi
-                    mv "$tmpfile" "${1%.*}.$extension" >>"$OPTIBOOK_LOG" 2>&1
+                    local outputName="$(optibook.finalName "$1" "$extension")"
+                    mv -f "$tmpfile" "$outputName" >>"$OPTIBOOK_LOG" 2>&1
+                    if [[ "$(realpath "$1")" != "$(realpath "$outputName")" ]]; then
+                        rm -r "$1" >>"$OPTIBOOK_LOG" 2>&1
+                    fi
                 else
                     optimizedSize="$originalSize"
                     rm "$tmpfile" >>"$OPTIBOOK_LOG" 2>&1
