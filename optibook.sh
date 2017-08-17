@@ -25,9 +25,17 @@ optibook.status() {
     echo -ne "\r[$(basename "$1")] $2\033[K"
 }
 
+optibook.size() {
+    if [[ -d "$1" ]]; then
+        du -sb "$1" | cut -f1
+    else
+        stat --printf="%s" "$1"
+    fi
+}
+
 optibook.optimize() {
     if [[ -s "$1" ]]; then
-        local originalSize="$(stat --printf="%s" "$1")"
+        local originalSize="$(optibook.size "$1")"
         local optimizedSize="$originalSize"
         
         local tmpdir="$(mktemp -d --tmpdir "optibook.XXXXXX")"
@@ -54,9 +62,9 @@ optibook.optimize() {
             optibook.status "$1" "Recompressing archive"
             local tmpfile="$(mktemp -u --tmpdir "optibook.XXXXXX.zip")"
             if optibook.recompress "$tmpdir" "$tmpfile" >>"$details" 2>&1; then
-                optimizedSize="$(stat --printf="%s" "$tmpfile")"
+                optimizedSize="$(optibook.size "$tmpfile")"
                 if [[ $optimizedSize -lt $originalSize ]]; then
-                    rm "$1" >>"$details" 2>&1
+                    rm -r "$1" >>"$details" 2>&1
                     local extension
                     if optibook.isEpub "$tmpdir"; then
                         extension=epub
@@ -104,7 +112,11 @@ optibook.recompress() {
 }
 
 optibook.decompress() {
-    7z x -o"$2" "$1"
+    if [[ -d "$1" ]]; then
+        cp -r "$1"/* "$2"
+    else
+        7z x -o"$2" "$1"
+    fi
 }
 
 optibook.optimizeJpegs() {
