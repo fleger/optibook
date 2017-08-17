@@ -42,39 +42,39 @@ optibook.optimize() {
         
         # Uncompress file
         optibook.status "$1" "Decompressing archive"
-        if optibook.decompress "$1" "$tmpdir" >>"$details" 2>&1; then
+        if optibook.decompress "$1" "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1; then
             optibook.status "$1" "Cleaning up unnecessary files"
-            optibook.cleanUpGlobal "$tmpdir" >>"$details" 2>&1
+            optibook.cleanUpGlobal "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Cleaning up unnecessary ePub files"
-            optibook.cleanUpEpub "$tmpdir" >>"$details" 2>&1
+            optibook.cleanUpEpub "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Cleaning up comic book archive"
-            optibook.cleanUpCB "$tmpdir" >>"$details" 2>&1
+            optibook.cleanUpCB "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing HTML"
-            optibook.optimizeHtml "$tmpdir" >>"$details" 2>&1
+            optibook.optimizeHtml "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing CSS"
-            optibook.optimizeCss "$tmpdir" >>"$details" 2>&1
+            optibook.optimizeCss "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing fonts"
-            optibook.optimizeFonts "$tmpdir" >>"$details" 2>&1
+            optibook.optimizeFonts "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing JPEGs"
-            optibook.optimizeJpegs "$tmpdir" >>"$details" 2>&1
+            optibook.optimizeJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing PNGs"
-            optibook.optimizePngs "$tmpdir" >>"$details" 2>&1
+            optibook.optimizePngs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Recompressing archive"
             local tmpfile="$(mktemp -u --tmpdir "optibook.XXXXXX.zip")"
-            if optibook.recompress "$tmpdir" "$tmpfile" >>"$details" 2>&1; then
+            if optibook.recompress "$tmpdir" "$tmpfile" >>"$OPTIBOOK_LOG" 2>&1; then
                 optimizedSize="$(optibook.size "$tmpfile")"
                 if [[ $optimizedSize -lt $originalSize ]]; then
-                    rm -r "$1" >>"$details" 2>&1
+                    rm -r "$1" >>"$OPTIBOOK_LOG" 2>&1
                     local extension
                     if optibook.isEpub "$tmpdir"; then
                         extension=epub
                     else
                         extension=cbz
                     fi
-                    mv "$tmpfile" "${1%.*}.$extension" >>"$details" 2>&1
+                    mv "$tmpfile" "${1%.*}.$extension" >>"$OPTIBOOK_LOG" 2>&1
                 else
                     optimizedSize="$originalSize"
-                    rm "$tmpfile" >>"$details" 2>&1
+                    rm "$tmpfile" >>"$OPTIBOOK_LOG" 2>&1
                 fi
             else
                 optibook.status "$1" "Recompression failed" 1>&2
@@ -217,7 +217,7 @@ optibook.humanReadableBytes() {
 }
 
 optibook.main() {
-    local details=/dev/null
+    : ${OPTIBOOK_LOG:=/dev/null}
     local totalOriginalSize=0
     local totalOptimizedSize=0
     
