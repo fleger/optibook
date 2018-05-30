@@ -12,6 +12,7 @@
 #   - jpgcrush
 #   - exiftool
 #   - optipng
+#   - svgcleaner
 #   - python
 #   - python-html2text
 #   - python-fonttools
@@ -72,6 +73,8 @@ optibook.optimize() {
             optibook.optimizeJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing PNGs"
             optibook.optimizePngs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+            optibook.status "$1" "Optimizing SVGs"
+            optibook.optimizeSvgs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Recompressing archive"
             local tmpfile="$(mktemp -u --tmpdir "optibook.XXXXXX.zip")"
             if optibook.recompress "$tmpdir" "$tmpfile" >>"$OPTIBOOK_LOG" 2>&1; then
@@ -146,6 +149,21 @@ optibook.optimizeJpegs() {
 
 optibook.optimizePngs() {
     optipng "$1"/**/*.png || true
+}
+
+optibook.optimizeSvgs() {
+    local h
+    for h in  "$1"/**/*.svg; do
+        if [[ -f "$h" ]]; then
+            local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
+            mv -f "$h" "$tmpfile"
+            if svgcleaner "$tmpfile" "$h" && [[ -s "$h" ]]; then
+                rm "$tmpfile"
+            else
+                mv -f "$tmpfile" "$h"
+            fi
+        fi
+    done
 }
 
 optibook.optimizeHtml() {
