@@ -118,14 +118,18 @@ optibook.isEpub() {
 }
 
 optibook.recompress() {
+    local -a compressorArgs=(-tzip -mx=9)
+    if [[ -n "$OPTIBOOK_THREADS" ]]; then
+        compressorArgs+=("-mmt$OPTIBOOK_THREADS")
+    fi
     if optibook.isEpub "$1"; then
         # See https://sourceforge.net/p/sevenzip/feature-requests/1212/
         mv "$1/mimetype" "$1/!mimetype"
-        7z a -tzip -mx=9 "$2" "$1/!mimetype" "$1"/!(!mimetype)
+        7z a "${compressorArgs[@]}" "$2" "$1/!mimetype" "$1"/!(!mimetype)
         7z rn "$2" !mimetype mimetype
         mv "$1/!mimetype" "$1/mimetype"
     else
-        7z a -tzip -mx=9 "$2" "$1"/*
+        7z a "${compressorArgs[@]}" "$2" "$1"/*
     fi
     
 }
