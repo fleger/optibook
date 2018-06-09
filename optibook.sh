@@ -176,9 +176,9 @@ optibook.optimizeJpegs() {
 
 optibook.optimizePngs() {
     if optibook.hasParallel; then
-        optibook.parallel optipng {} ::: "$1"/**/*.png || true
+        optibook.parallel optipng -strip all {} ::: "$1"/**/*.png || true
     else
-        optipng "$1"/**/*.png || true
+        optipng -strip all "$1"/**/*.png || true
     fi
 }
 
