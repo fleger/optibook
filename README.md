@@ -16,7 +16,7 @@ It can typically reduce the size of eBooks by up to 40% depending on the source.
 ./optibook.sh FILE1 [FILE2 ...]
 ```
 
-## Dependencies
+## Required Dependencies
 
 * [Bash](https://www.gnu.org/software/bash)
 * [p7zip](http://p7zip.sourceforge.net) ≥ 9.38
@@ -29,3 +29,8 @@ It can typically reduce the size of eBooks by up to 40% depending on the source.
 * [fonttools](https://github.com/fonttools/fonttools)
 * [yuicompressor](https://yui.github.io/yuicompressor/)
 * [htmlcompressor](https://code.google.com/archive/p/htmlcompressor/)
+
+
+## Optional Dependencies
+
+* [GNU parallel](http://www.gnu.org/software/parallel/)

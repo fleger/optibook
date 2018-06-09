@@ -19,6 +19,9 @@
 #   - yuicompressor
 #   - htmlcompressor
 
+# Optional dependencies:
+#   - GNU parallel
+
 shopt -s globstar extglob nocaseglob
 shopt -u failglob
 
@@ -142,17 +145,41 @@ optibook.decompress() {
     fi
 }
 
+optibook.hasParallel() {
+    ! [[ -v "$OPTIBOOK_NO_PARALLEL" ]] && which parallel 2>&1 > /dev/null
+}
+
+optibook.parallel() {
+    local -a parallelArgs=(-X --line-buffer)
+    if [[ -n "$OPTIBOOK_THREADS" ]]; then
+        parallelArgs+=("-j$OPTIBOOK_THREADS")
+    fi
+    parallel "${parallelArgs[@]}" "$@"
+}
+
 optibook.optimizeJpegs() {
     # Workaround issue where jpgcrush does not work
     # when JPEGs are on a separate filesystem as PWD.
     pushd "$1"
-    jpgcrush **/*.@(jpg|jpeg) || true
+    if optibook.hasParallel; then
+        optibook.parallel jpgcrush {} ::: **/*.@(jpg|jpeg) || true
+    else
+        jpgcrush **/*.@(jpg|jpeg) || true
+    fi
     popd
-    exiftool -All= -overwrite_original "$1"/**/*.@(jpg|jpeg) || return @
+    if optibook.hasParallel; then
+        optibook.parallel exiftool -All= -overwrite_original {} ::: "$1"/**/*.@(jpg|jpeg) || true
+    else
+        exiftool -All= -overwrite_original "$1"/**/*.@(jpg|jpeg) || true
+    fi
 }
 
 optibook.optimizePngs() {
-    optipng "$1"/**/*.png || true
+    if optibook.hasParallel; then
+        optibook.parallel optipng {} ::: "$1"/**/*.png || true
+    else
+        optipng "$1"/**/*.png || true
+    fi
 }
 
 optibook.optimizeSvgs() {
@@ -262,7 +289,14 @@ optibook.main() {
     if [[ $# == 0 ]]; then
         echo "Usage: $0 FILE1 [FILE2 ...]"
         echo
-        echo "Reduce the size of Comic Book and ePub archives by optimizing the images, fonts, HTML and CSS data and by using a high level of compression."
+        echo "Reduces the size of Comic Book and ePub archives by optimizing the images, fonts, HTML and CSS data and by using a high level of compression."
+        echo
+        echo "Environment Variables"
+        echo
+        echo "  OPTIBOOK_THREADS=n      Forces optibook to use n threads during the optimization and recompression steps."
+        echo "  OPTIBOOK_NO_PARALLEL    If set prevent optibook from using GNU parallel during the optimization step."
+        echo "  OPTIBOOK_LOG=file       Write logs to file."
+        echo
         return 1
     fi
 
