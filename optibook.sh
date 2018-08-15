@@ -82,7 +82,7 @@ optibook.optimize() {
             local tmpfile="$(mktemp -u --tmpdir "optibook.XXXXXX.zip")"
             if optibook.recompress "$tmpdir" "$tmpfile" >>"$OPTIBOOK_LOG" 2>&1; then
                 optimizedSize="$(optibook.size "$tmpfile")"
-                if [[ $optimizedSize -lt $originalSize ]]; then
+                if [[ $optimizedSize -lt $originalSize ]] || [[ -d "$1" ]]; then
                     local extension
                     if optibook.isEpub "$tmpdir"; then
                         extension=epub
@@ -167,10 +167,14 @@ optibook.optimizeJpegs() {
         jpgcrush **/*.@(jpg|jpeg) || true
     fi
     popd
+    
+}
+
+optibook.stripExifMetadata() {
     if optibook.hasParallel; then
-        optibook.parallel exiftool -All= -overwrite_original {} ::: "$1"/**/*.@(jpg|jpeg) || true
+        optibook.parallel exiftool -All= -overwrite_original {} ::: "$1"/**/*.@(jpg|jpeg|webp|bmp|png) || true
     else
-        exiftool -All= -overwrite_original "$1"/**/*.@(jpg|jpeg) || true
+        exiftool -All= -overwrite_original "$1"/**/*.@(jpg|jpeg|webp|bmp|png) || true
     fi
 }
 
