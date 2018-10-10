@@ -20,8 +20,7 @@ It can typically reduce the size of eBooks by up to 40% depending on the source.
 
 * [Bash](https://www.gnu.org/software/bash)
 * [p7zip](http://p7zip.sourceforge.net) ≥ 9.38
-* [jpgcrush](http://akuvian.org/src/jpgcrush.tar.gz)
-* [ExifTool](https://sno.phy.queensu.ca/~phil/exiftool)
+* jpegtran from [mozjpeg](https://github.com/mozilla/mozjpeg) (recommended), [libjpeg-turbo](https://libjpeg-turbo.org/) or [libjpeg](https://www.ijg.org/)
 * [OptiPNG](http://optipng.sourceforge.net)
 * [svgcleaner](https://github.com/RazrFalcon/svgcleaner)
 * [Python](https://www.python.org)
@@ -33,4 +32,4 @@ It can typically reduce the size of eBooks by up to 40% depending on the source.
 
 ## Optional Dependencies
 
-* [GNU parallel](http://www.gnu.org/software/parallel/)
+* [GNU parallel](http://www.gnu.org/software/parallel/) to boost performance

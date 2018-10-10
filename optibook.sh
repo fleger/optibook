@@ -9,8 +9,7 @@
 
 # Requires the following dependencies:
 #   - p7zip ≥ 9.38
-#   - jpgcrush
-#   - exiftool
+#   - jpegtran from libjpeg, libjpeg-turbo or mozjpeg. Mozjpeg recommended to achieve best optimization ratio.
 #   - optipng
 #   - svgcleaner
 #   - python
@@ -150,31 +149,28 @@ optibook.hasParallel() {
 }
 
 optibook.parallel() {
-    local -a parallelArgs=(-X --line-buffer)
+    local -a parallelArgs=(-n 3 --line-buffer)
     if [[ -n "$OPTIBOOK_THREADS" ]]; then
         parallelArgs+=("-j$OPTIBOOK_THREADS")
     fi
     parallel "${parallelArgs[@]}" "$@"
 }
 
-optibook.optimizeJpegs() {
-    # Workaround issue where jpgcrush does not work
-    # when JPEGs are on a separate filesystem as PWD.
-    pushd "$1"
-    if optibook.hasParallel; then
-        optibook.parallel jpgcrush {} ::: **/*.@(jpg|jpeg) || true
-    else
-        jpgcrush **/*.@(jpg|jpeg) || true
-    fi
-    popd
-    
+optibook.optijpg() {
+    local f
+    for f; do
+        local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")" &&
+        jpegtran -optimize -outfile "$tmpfile" -copy none "$f" &&
+        mv "$tmpfile" "$f"
+    done
 }
+export -f optibook.optijpg
 
-optibook.stripExifMetadata() {
+optibook.optimizeJpegs() {
     if optibook.hasParallel; then
-        optibook.parallel exiftool -All= -overwrite_original {} ::: "$1"/**/*.@(jpg|jpeg|webp|bmp|png) || true
+        optibook.parallel optibook.optijpg {} ::: "$1"/**/*.@(jpg|jpeg) || true
     else
-        exiftool -All= -overwrite_original "$1"/**/*.@(jpg|jpeg|webp|bmp|png) || true
+        optibook.optijpg "$1"/**/*.@(jpg|jpeg) || true
     fi
 }
 
