@@ -109,7 +109,7 @@ optibook.optimize() {
         totalOriginalSize=$(( $totalOriginalSize + $originalSize ))
         totalOptimizedSize=$(( $totalOptimizedSize + $optimizedSize ))
         
-        optibook.status "$1" "$(optibook.humanReadableBytes $originalSize) -> $(optibook.humanReadableBytes $optimizedSize): $(optibook.improvementRate $originalSize $optimizedSize)% (-$(optibook.humanReadableBytes $(( $originalSize - $optimizedSize  ))))"
+        optibook.status "$1" "$(optibook.humanReadableBytes $originalSize) -> $(optibook.humanReadableBytes $optimizedSize): $(optibook.improvementRate $originalSize $optimizedSize)% ($(optibook.humanReadableBytes $(( $optimizedSize - $originalSize ))))"
         
         echo
     fi
@@ -306,7 +306,8 @@ optibook.main() {
         
     echo "Total original size: $(optibook.humanReadableBytes $totalOriginalSize)"
     echo "Total optimized size: $(optibook.humanReadableBytes $totalOptimizedSize)"
-    echo "Overall improvement: $(optibook.improvementRate $totalOriginalSize $totalOptimizedSize)% (-$(optibook.humanReadableBytes $(( $totalOriginalSize - $totalOptimizedSize ))))"
+    echo "Overall improvement: $(optibook.improvementRate $totalOriginalSize $totalOptimizedSize)% ($(optibook.humanReadableBytes $(( $totalOptimizedSize - 
+$totalOriginalSize ))))"
 }
 
 optibook.improvementRate() {
