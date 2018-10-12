@@ -277,7 +277,7 @@ optibook.optimizeCss() {
 }
 
 optibook.humanReadableBytes() {
-    numfmt --to=iec-i --suffix="B" "$1"
+    numfmt --to=iec-i --suffix="B" -- "$1"
 }
 
 optibook.main() {
