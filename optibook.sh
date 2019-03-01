@@ -17,12 +17,16 @@
 #   - python-fonttools
 #   - yuicompressor
 #   - htmlcompressor
+#   - cwebp from libwebp
+#   - waifu2x-converter-cpp
 
 # Optional dependencies:
 #   - GNU parallel
 
 shopt -s globstar extglob nocaseglob
 shopt -u failglob
+
+: ${WAIFU2X_NOISE_LEVEL:=1}
 
 optibook.status() {
     echo -ne "\r[$(basename "$1")] $2\033[K"
@@ -71,6 +75,12 @@ optibook.optimize() {
             optibook.optimizeCss "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing fonts"
             optibook.optimizeFonts "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+            if ! optibook.isEpub "$tmpdir"; then
+                optibook.status "$1" "Cleaning-up JPEGs"
+                optibook.cleanUpJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+                optibook.status "$1" "Converting images to WebP"
+                optibook.convertLosslessWebP "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+            fi
             optibook.status "$1" "Optimizing JPEGs"
             optibook.optimizeJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing PNGs"
@@ -180,6 +190,32 @@ optibook.optimizePngs() {
     else
         optipng -strip all "$1"/**/*.png || true
     fi
+}
+
+optibook.convertLosslessWebP() {
+    local f
+    for f in "$1"/**/*.@(png|tiff|tif); do
+        local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
+        mv "$f" "$tmpfile"
+        local dest="${f%.*}.webp"
+        if cwebp -preset drawing -mt -m 6 -q 90 -sharp_yuv  "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
+            rm "$tmpfile"
+        else
+            if [[ -f "$dest" ]]; then
+                rm "$dest"
+            fi
+            mv -f "$tmpfile" "$f"
+        fi
+    done
+}
+
+optibook.cleanUpJpegs() {
+    local f
+    for f in "$1"/**/*.@(jpg|jpeg); do
+        if waifu2x-converter-cpp -m noise --noise_level "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
+            rm "$f"
+        fi
+    done
 }
 
 optibook.optimizeSvgs() {
@@ -295,6 +331,7 @@ optibook.main() {
         echo "  OPTIBOOK_THREADS=n      Forces optibook to use n threads during the optimization and recompression steps."
         echo "  OPTIBOOK_NO_PARALLEL    If set prevent optibook from using GNU parallel during the optimization step."
         echo "  OPTIBOOK_LOG=file       Write logs to file."
+        echo "  WAIFU2X_NOISE_LEVEL=n   Amount of noise reduction applied when reencoding JPEGs (1-3)."
         echo
         return 1
     fi
