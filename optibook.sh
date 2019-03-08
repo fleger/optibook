@@ -32,7 +32,7 @@ optibook.size() {
     if [[ -d "$1" ]]; then
         du -sb "$1" | cut -f1
     else
-        stat --printf="%s" "$1"
+        stat -L --printf="%s" "$1"
     fi
 }
 
