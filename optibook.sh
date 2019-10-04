@@ -16,7 +16,7 @@
 #   - python-html2text
 #   - python-fonttools
 #   - yuicompressor
-#   - htmlcompressor
+#   - htmlmin
 #   - cwebp from libwebp
 #   - waifu2x-converter-cpp
 
@@ -243,7 +243,7 @@ optibook.cleanUpJpegs() {
     local f
     for f in "$1"/**/*.{jpg,jpeg}; do
         if optibook.checkFileType "$f" "image/jpeg"; then
-	    if waifu2x-converter-cpp -m noise --noise-level "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
+            if waifu2x-converter-cpp -m noise --noise-level "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
                 rm "$f"
             fi
         fi
@@ -265,7 +265,7 @@ optibook.optimizeHtml() {
         if  optibook.checkFileType "$h" "text/html" "application/xhtml+xml"; then
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
-            if htmlcompressor --preserve-line-breaks -o "$h" "$tmpfile" && [[ -s "$h" ]]; then
+            if htmlmin "$tmpfile" "$h" && [[ -s "$h" ]]; then
                 rm "$tmpfile"
             else
                 mv -f "$tmpfile" "$h"
