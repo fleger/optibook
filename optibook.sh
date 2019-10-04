@@ -30,6 +30,7 @@ shopt -u failglob
 
 optibook.status() {
     echo -ne "\r[$(basename "$1")] $2\033[K"
+    echo "[$(basename "$1")] $2" >>"$OPTIBOOK_LOG"
 }
 
 optibook.size() {
@@ -143,8 +144,24 @@ optibook.recompress() {
     else
         7z a "${compressorArgs[@]}" "$2" "$1"/*
     fi
-    
 }
+
+optibook.checkFileType() {
+    local f="$1"
+    shift
+    if ! [[ -f "$f" ]]; then
+        return 1
+    fi
+    local mime="$(file -L --mime-type --brief "$f")"
+    local candidate
+    for candidate; do
+        if [[ "$candidate" == "$mime" ]]; then
+            return 0
+        fi
+    done
+    return 2
+}
+export -f optibook.checkFileType
 
 optibook.decompress() {
     if [[ -d "$1" ]]; then
@@ -159,7 +176,7 @@ optibook.hasParallel() {
 }
 
 optibook.parallel() {
-    local -a parallelArgs=(-n 3 --line-buffer)
+    local -a parallelArgs=(--line-buffer)
     if [[ -n "$OPTIBOOK_THREADS" ]]; then
         parallelArgs+=("-j$OPTIBOOK_THREADS")
     fi
@@ -169,74 +186,83 @@ optibook.parallel() {
 optibook.optijpg() {
     local f
     for f; do
-        local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")" &&
-        jpegtran -optimize -outfile "$tmpfile" -copy none "$f" &&
-        mv "$tmpfile" "$f"
+        if optibook.checkFileType "$f" "image/jpeg" ; then
+            jpegtran -optimize -outfile "$f" -copy none "$f"
+        fi
     done
 }
 export -f optibook.optijpg
 
 optibook.optimizeJpegs() {
     if optibook.hasParallel; then
-        optibook.parallel optibook.optijpg {} ::: "$1"/**/*.@(jpg|jpeg) || true
+        optibook.parallel optibook.optijpg {} ::: "$1"/**/*.{jpg,jpeg} || true
     else
-        optibook.optijpg "$1"/**/*.@(jpg|jpeg) || true
+        optibook.optijpg "$1"/**/*.{jpg,jpeg} || true
     fi
 }
 
+
+optibook.optipng() {
+    local f
+    for f; do
+        if optibook.checkFileType "$f" "image/png" ; then
+            optipng -strip all "$f" || true
+        fi
+    done
+}
+export -f optibook.optipng
+
 optibook.optimizePngs() {
     if optibook.hasParallel; then
-        optibook.parallel optipng -strip all {} ::: "$1"/**/*.png || true
+        optibook.parallel optibook.optipng {} ::: "$1"/**/*.png || true
     else
-        optipng -strip all "$1"/**/*.png || true
+        optibook.optipng "$1"/**/*.png || true
     fi
 }
 
 optibook.convertLosslessWebP() {
     local f
-    for f in "$1"/**/*.@(png|tiff|tif); do
-        local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
-        mv "$f" "$tmpfile"
-        local dest="${f%.*}.webp"
-        if cwebp -preset drawing -mt -m 6 -q 90 -sharp_yuv  "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
-            rm "$tmpfile"
-        else
-            if [[ -f "$dest" ]]; then
-                rm "$dest"
+    for f in "$1"/**/*.{png,tiff,tif}; do
+        if optibook.checkFileType "$f" "image/png" "image/tiff" ; then
+            local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
+            mv "$f" "$tmpfile"
+            local dest="${f%.*}.webp"
+            if cwebp -preset drawing -mt -m 6 -q 88 -sharp_yuv  "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
+                rm "$tmpfile"
+            else
+                if [[ -f "$dest" ]]; then
+                    rm "$dest"
+                fi
+                mv -f "$tmpfile" "$f"
             fi
-            mv -f "$tmpfile" "$f"
         fi
     done
 }
 
 optibook.cleanUpJpegs() {
     local f
-    for f in "$1"/**/*.@(jpg|jpeg); do
-        if waifu2x-converter-cpp -m noise --noise_level "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
-            rm "$f"
+    for f in "$1"/**/*.{jpg,jpeg}; do
+        if optibook.checkFileType "$f" "image/jpeg"; then
+	    if waifu2x-converter-cpp -m noise --noise-level "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
+                rm "$f"
+            fi
         fi
     done
 }
 
 optibook.optimizeSvgs() {
     local h
-    for h in  "$1"/**/*.svg; do
-        if [[ -f "$h" ]]; then
-            local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
-            mv -f "$h" "$tmpfile"
-            if svgcleaner "$tmpfile" "$h" && [[ -s "$h" ]]; then
-                rm "$tmpfile"
-            else
-                mv -f "$tmpfile" "$h"
-            fi
+    for h in "$1"/**/*.svg; do
+        if optibook.checkFileType "$h" "image/svg+xml"; then
+            svgcleaner "$h" "$h" || true
         fi
     done
 }
 
 optibook.optimizeHtml() {
     local h
-    for h in  "$1"/**/*.@(html|xhtml|htm|xhtm); do
-        if [[ -f "$h" ]]; then
+    for h in "$1"/**/*.{html,xhtml,htm,xhtm}; do
+        if  optibook.checkFileType "$h" "text/html" "application/xhtml+xml"; then
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
             if htmlcompressor --preserve-line-breaks -o "$h" "$tmpfile" && [[ -s "$h" ]]; then
@@ -275,11 +301,11 @@ optibook.cleanUpCB() {
 optibook.optimizeFonts() {
     local sampleFile="$(mktemp)"
     local f
-    for f in  "$1"/**/*.ttf; do
-        if [[ -f "$f" ]]; then
+    for f in "$1"/**/*.ttf; do
+        if optibook.checkFileType "$f" "font/ttf"; then
             if [[ ! -s "$sampleFile" ]]; then
                 local h
-                for h in "$1"/**/*.@(html|xhtml|htm|xhtm); do
+                for h in "$1"/**/*.{html,xhtml,htm,xhtm}; do
                     if [[ -f "$h" ]]; then
                         html2text --no-wrap-links --ignore-emphasis --ignore-links --ignore-images --ignore-tables --single-line-break "$h" >> "$sampleFile"
                     fi
@@ -299,8 +325,8 @@ optibook.optimizeFonts() {
 
 optibook.optimizeCss() {
     local h
-    for h in  "$1"/**/*.css; do
-        if [[ -f "$h" ]]; then
+    for h in "$1"/**/*.css; do
+        if optibook.checkFileType "$h" "text/css"; then
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
             if yuicompressor --type css -o "$h" "$tmpfile" && [[ -s "$h" ]]; then
