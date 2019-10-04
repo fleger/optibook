@@ -28,6 +28,8 @@ It can typically reduce the size of eBooks by up to 40% depending on the source.
 * [fonttools](https://github.com/fonttools/fonttools)
 * [yuicompressor](https://yui.github.io/yuicompressor/)
 * [htmlmin](https://htmlmin.readthedocs.io/en/latest/)
+* cwebp from [libwebp](https://chromium.googlesource.com/webm/libwebp/)
+* [waifu2x-converter-cpp](https://github.com/DeadSix27/waifu2x-converter-cpp)
 
 
 ## Optional Dependencies
