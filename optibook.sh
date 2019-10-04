@@ -153,6 +153,7 @@ optibook.checkFileType() {
         return 1
     fi
     local mime="$(file -L --mime-type --brief "$f")"
+    echo "$f type is $mime"
     local candidate
     for candidate; do
         if [[ "$candidate" == "$mime" ]]; then
@@ -262,7 +263,8 @@ optibook.optimizeSvgs() {
 optibook.optimizeHtml() {
     local h
     for h in "$1"/**/*.{html,xhtml,htm,xhtm}; do
-        if  optibook.checkFileType "$h" "text/html" "application/xhtml+xml"; then
+        echo "Processing $h"
+        if optibook.checkFileType "$h" "text/html" "application/xhtml+xml" "text/xml"; then
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
             if htmlmin "$tmpfile" "$h" && [[ -s "$h" ]]; then
@@ -326,7 +328,7 @@ optibook.optimizeFonts() {
 optibook.optimizeCss() {
     local h
     for h in "$1"/**/*.css; do
-        if optibook.checkFileType "$h" "text/css"; then
+        if optibook.checkFileType "$h" "text/css" "text/plain"; then
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
             if yuicompressor --type css -o "$h" "$tmpfile" && [[ -s "$h" ]]; then

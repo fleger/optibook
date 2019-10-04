@@ -27,7 +27,7 @@ It can typically reduce the size of eBooks by up to 40% depending on the source.
 * [html2text](https://pypi.python.org/pypi/html2text)
 * [fonttools](https://github.com/fonttools/fonttools)
 * [yuicompressor](https://yui.github.io/yuicompressor/)
-* [htmlcompressor](https://code.google.com/archive/p/htmlcompressor/)
+* [htmlmin](https://htmlmin.readthedocs.io/en/latest/)
 
 
 ## Optional Dependencies
