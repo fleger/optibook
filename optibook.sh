@@ -26,8 +26,6 @@
 shopt -s globstar extglob nocaseglob
 shopt -u failglob
 
-: ${WAIFU2X_NOISE_LEVEL:=1}
-
 optibook.status() {
     echo -ne "\r[$(basename "$1")] $2\033[K"
     echo "[$(basename "$1")] $2" >>"$OPTIBOOK_LOG"
@@ -76,11 +74,13 @@ optibook.optimize() {
             optibook.optimizeCss "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing fonts"
             optibook.optimizeFonts "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
-            if ! optibook.isEpub "$tmpdir"; then
-                optibook.status "$1" "Cleaning-up JPEGs"
-                optibook.cleanUpJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+            if ! optibook.isEpub "$tmpdir" && [[ "$CONVERT_TO_WEBP" == 1 ]]; then
+                if [[ "$WAIFU2X_NOISE_LEVEL" != 0 ]]; then
+                    optibook.status "$1" "Cleaning-up JPEGs"
+                    optibook.cleanUpJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+                fi
                 optibook.status "$1" "Converting images to WebP"
-                optibook.convertLosslessWebP "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+                optibook.convertWebP "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             fi
             optibook.status "$1" "Optimizing JPEGs"
             optibook.optimizeJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
@@ -221,10 +221,10 @@ optibook.optimizePngs() {
     fi
 }
 
-optibook.convertLosslessWebP() {
+optibook.convertWebP() {
     local f
-    for f in "$1"/**/*.{png,tiff,tif}; do
-        if optibook.checkFileType "$f" "image/png" "image/tiff" ; then
+    for f in "$1"/**/*.{png,tiff,tif,jpg,jpeg}; do
+        if optibook.checkFileType "$f" "image/png" "image/tiff" "image/jpeg"; then
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
             mv "$f" "$tmpfile"
             local dest="${f%.*}.webp"
@@ -345,31 +345,66 @@ optibook.humanReadableBytes() {
     numfmt --to=iec-i --suffix="B" -- "$1"
 }
 
+optibook.usage() {
+    echo "Usage: $0 [-w] [-n (0|1|2|3)] FILE1 [FILE2 ...]"
+    echo
+    echo "Reduces the size of Comic Book and ePub archives by optimizing the images, fonts, HTML and CSS data and by using a high level of compression."
+    echo
+    echo "Options:"
+    echo "  -w            Recompress images to WebP in Comic Book archives to further reduce size. May cause quality loss."
+    echo "                Not supported for ePub files."
+    echo "  -n (0|1|2|3)  Remove JPEG artifacts using the Waifu2x algorithm before recompressing to WebP. Values 1, 2 and 3"
+    echo "                correspond respectively to a low, medium or high filtering strength. A value of 0 (default) will"
+    echo "                disable filtering. Requires using -w to have an effect."
+    echo
+    echo "Environment Variables:"
+    echo
+    echo "  OPTIBOOK_THREADS=n      Forces optibook to use n threads during the optimization and recompression steps."
+    echo "  OPTIBOOK_NO_PARALLEL    If set prevent optibook from using GNU parallel during the optimization step."
+    echo "  OPTIBOOK_LOG=file       Write logs to file."
+    echo
+    exit 1
+}
+
 optibook.main() {
     : ${OPTIBOOK_LOG:=/dev/null}
     local totalOriginalSize=0
     local totalOptimizedSize=0
-    
+
+    local CONVERT_TO_WEBP=0
+    local WAIFU2X_NOISE_LEVEL=0
+
+    while getopts "wn:" option; do
+        case "${option}" in
+            w)
+                CONVERT_TO_WEBP=1
+                ;;
+            n)
+                WAIFU2X_NOISE_LEVEL="$OPTARG"
+                if [[ $WAIFU2X_NOISE_LEVEL != 0 ]] && [[ $WAIFU2X_NOISE_LEVEL != 1 ]] && [[ $WAIFU2X_NOISE_LEVEL != 2 ]] && [[ $WAIFU2X_NOISE_LEVEL != 3 ]]; then
+                    echo "-n: valid values are 0, 1, 2 or 3"
+                    optibook.usage
+                fi
+                ;;
+            *)
+                optibook.usage
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
     if [[ $# == 0 ]]; then
-        echo "Usage: $0 FILE1 [FILE2 ...]"
-        echo
-        echo "Reduces the size of Comic Book and ePub archives by optimizing the images, fonts, HTML and CSS data and by using a high level of compression."
-        echo
-        echo "Environment Variables"
-        echo
-        echo "  OPTIBOOK_THREADS=n      Forces optibook to use n threads during the optimization and recompression steps."
-        echo "  OPTIBOOK_NO_PARALLEL    If set prevent optibook from using GNU parallel during the optimization step."
-        echo "  OPTIBOOK_LOG=file       Write logs to file."
-        echo "  WAIFU2X_NOISE_LEVEL=n   Amount of noise reduction applied when reencoding JPEGs (1-3)."
-        echo
-        return 1
+        optibook.usage
     fi
+
+    export CONVERT_TO_WEBP
+    export WAIFU2X_NOISE_LEVEL
 
     local f
     for f; do
         optibook.optimize "$f"
     done
-        
+
     echo "Total original size: $(optibook.humanReadableBytes $totalOriginalSize)"
     echo "Total optimized size: $(optibook.humanReadableBytes $totalOptimizedSize)"
     echo "Overall improvement: $(optibook.improvementRate $totalOriginalSize $totalOptimizedSize)% ($(optibook.humanReadableBytes $(( $totalOptimizedSize - 

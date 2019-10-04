@@ -7,14 +7,24 @@ It combines several optimizations to help reduce the size of eBook files:
 * Minification of CSS and HTML files
 * Embedded font optimization by subsetting the glyphs to the characters used in the eBook
 * Better overall compression by taking advantage of 7-Zip more efficient Zip implementation to recompress the files
+* Optional JPEG artifact reduction using the Waifu2x algorithm and lossy recompression of images from comic book archives to the more efficient WebP format
 
 It can typically reduce the size of eBooks by up to 40% depending on the source.
 
 ## Usage
 
+To losslessly optimize comic book archives or books:
 ```
 ./optibook.sh FILE1 [FILE2 ...]
 ```
+
+To recompress comic book archives to WebP while applying while applying light denoising to reduce JPEG artifacts:
+```
+./optibook.sh -w -n 1 FILE1 [FILE2 ...]
+```
+
+Complete syntax can be obtained by running optibook without argument.
+
 
 ## Required Dependencies
 
