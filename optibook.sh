@@ -23,6 +23,10 @@
 # Optional dependencies:
 #   - GNU parallel
 
+OPTIBOOK_GIT_HASH='$Format:%H$'
+OPTIBOOK_GIT_REFNAMES='$Format:%d$'
+OPTIBOOK_GIT_DATE='$Format:%ci$'
+
 shopt -s globstar extglob nocaseglob
 shopt -u failglob
 
@@ -346,6 +350,8 @@ optibook.humanReadableBytes() {
 }
 
 optibook.usage() {
+    echo "Optibook $OPTIBOOK_GIT_REFNAMES (commit $OPTIBOOK_GIT_HASH, $OPTIBOOK_GIT_DATE)"
+    echo
     echo "Usage: $0 [-w] [-n (0|1|2|3)] FILE1 [FILE2 ...]"
     echo
     echo "Reduces the size of Comic Book and ePub archives by optimizing the images, fonts, HTML and CSS data and by using a high level of compression."
