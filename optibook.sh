@@ -263,8 +263,8 @@ optibook.optimizeSvgs() {
 optibook.optimizeHtml() {
     local h
     for h in "$1"/**/*.{html,xhtml,htm,xhtm}; do
-        echo "Processing $h"
         if optibook.checkFileType "$h" "text/html" "application/xhtml+xml" "text/xml"; then
+            echo "Optimizing HTML file $h"
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
             if htmlmin "$tmpfile" "$h" && [[ -s "$h" ]]; then
@@ -329,6 +329,7 @@ optibook.optimizeCss() {
     local h
     for h in "$1"/**/*.css; do
         if optibook.checkFileType "$h" "text/css" "text/plain"; then
+            echo "Optimizing CSS file $h"
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
             if yuicompressor --type css -o "$h" "$tmpfile" && [[ -s "$h" ]]; then
