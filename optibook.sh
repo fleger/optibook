@@ -15,8 +15,7 @@
 #   - python
 #   - python-html2text
 #   - python-fonttools
-#   - yuicompressor
-#   - htmlmin
+#   - minify
 #   - cwebp from libwebp
 #   - waifu2x-converter-cpp
 #   - avifenc from libavif
@@ -156,13 +155,18 @@ optibook.recompress() {
     fi
 }
 
+optibook.getMime() {
+    file -L --mime-type --brief "$1"
+}
+export -f optibook.getMime
+
 optibook.checkFileType() {
     local f="$1"
     shift
     if ! [[ -f "$f" ]]; then
         return 1
     fi
-    local mime="$(file -L --mime-type --brief "$f")"
+    local mime="$(optibook.getMime "$f")"
     echo "$f type is $mime"
     local candidate
     for candidate; do
@@ -291,12 +295,12 @@ optibook.optimizeSvgs() {
 
 optibook.optimizeHtml() {
     local h
-    for h in "$1"/**/*.{html,xhtml,htm,xhtm}; do
+    for h in "$1"/**/*.{html,xhtml,htm,xhtm,opf,ncx,xml}; do
         if optibook.checkFileType "$h" "text/html" "application/xhtml+xml" "text/xml"; then
             echo "Optimizing HTML file $h"
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
-            if htmlmin "$tmpfile" "$h" && [[ -s "$h" ]]; then
+            if minify --html-keep-document-tags --html-keep-end-tags --html-keep-quotes --html-keep-whitespace --xml-keep-whitespace --type "xml" "$tmpfile" -o "$h" && [[ -s "$h" ]]; then
                 rm "$tmpfile"
             else
                 mv -f "$tmpfile" "$h"
@@ -361,7 +365,7 @@ optibook.optimizeCss() {
             echo "Optimizing CSS file $h"
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${h##*.}")"
             mv -f "$h" "$tmpfile"
-            if yuicompressor --type css -o "$h" "$tmpfile" && [[ -s "$h" ]]; then
+            if minify --type css -o "$h" "$tmpfile" && [[ -s "$h" ]]; then
                 rm "$tmpfile"
             else
                 mv -f "$tmpfile" "$h"
