@@ -7,7 +7,7 @@ It combines several optimizations to help reduce the size of eBook files:
 * Minification of CSS and HTML files
 * Embedded font optimization by subsetting the glyphs to the characters used in the eBook
 * Better overall compression by taking advantage of 7-Zip more efficient Zip implementation to recompress the files
-* Optional JPEG artifact reduction using the Waifu2x algorithm and lossy recompression of images from comic book archives to the more efficient WebP format
+* Optional JPEG artifact reduction using the Waifu2x algorithm and lossy recompression of images from comic book archives to the more efficient WebP and AVIF formats
 
 It can typically reduce the size of eBooks by up to 40% depending on the source.
 
@@ -20,7 +20,12 @@ To losslessly optimize comic book archives or books:
 
 To recompress comic book archives to WebP while applying while applying light denoising to reduce JPEG artifacts:
 ```
-./optibook.sh -w -n 1 FILE1 [FILE2 ...]
+./optibook.sh -r webp -n 1 FILE1 [FILE2 ...]
+```
+
+Same thing using the AVIF file format:
+```
+./optibook.sh -r avif -n 1 FILE1 [FILE2 ...]
 ```
 
 Complete syntax can be obtained by running optibook without argument.
@@ -40,6 +45,7 @@ Complete syntax can be obtained by running optibook without argument.
 * [htmlmin](https://htmlmin.readthedocs.io/en/latest/)
 * cwebp from [libwebp](https://chromium.googlesource.com/webm/libwebp/)
 * [waifu2x-converter-cpp](https://github.com/DeadSix27/waifu2x-converter-cpp)
+* avifenc from [libavif](https://github.com/AOMediaCodec/libavif)
 
 
 ## Optional Dependencies

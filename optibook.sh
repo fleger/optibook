@@ -19,6 +19,7 @@
 #   - htmlmin
 #   - cwebp from libwebp
 #   - waifu2x-converter-cpp
+#   - avifenc from libavif
 
 # Optional dependencies:
 #   - GNU parallel
@@ -78,13 +79,18 @@ optibook.optimize() {
             optibook.optimizeCss "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
             optibook.status "$1" "Optimizing fonts"
             optibook.optimizeFonts "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
-            if ! optibook.isEpub "$tmpdir" && [[ "$CONVERT_TO_WEBP" == 1 ]]; then
+            if ! optibook.isEpub "$tmpdir" && [[ -n "$CONVERSION_FORMAT" ]]; then
                 if [[ "$WAIFU2X_NOISE_LEVEL" != 0 ]]; then
                     optibook.status "$1" "Cleaning-up JPEGs"
                     optibook.cleanUpJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
                 fi
-                optibook.status "$1" "Converting images to WebP"
-                optibook.convertWebP "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+                if [[ "$CONVERSION_FORMAT" == "webp" ]]; then
+                    optibook.status "$1" "Converting images to WebP"
+                    optibook.convertWebP "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+                elif [[ "$CONVERSION_FORMAT" == "avif" ]]; then
+                    optibook.status "$1" "Converting images to AVIF"
+                    optibook.convertAVIF "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
+                fi
             fi
             optibook.status "$1" "Optimizing JPEGs"
             optibook.optimizeJpegs "$tmpdir" >>"$OPTIBOOK_LOG" 2>&1
@@ -244,6 +250,25 @@ optibook.convertWebP() {
     done
 }
 
+optibook.convertAVIF() {
+    local f
+    for f in "$1"/**/*.{png,jpg,jpeg}; do
+        if optibook.checkFileType "$f" "image/png" "image/jpeg"; then
+            local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
+            mv "$f" "$tmpfile"
+            local dest="${f%.*}.avif"
+            if avifenc -a tune=ssim -d 10 "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
+                rm "$tmpfile"
+            else
+                if [[ -f "$dest" ]]; then
+                    rm "$dest"
+                fi
+                mv -f "$tmpfile" "$f"
+            fi
+        fi
+    done
+}
+
 optibook.cleanUpJpegs() {
     local f
     for f in "$1"/**/*.{jpg,jpeg}; do
@@ -352,16 +377,16 @@ optibook.humanReadableBytes() {
 optibook.usage() {
     echo "Optibook $OPTIBOOK_GIT_REFNAMES (commit $OPTIBOOK_GIT_HASH, $OPTIBOOK_GIT_DATE)"
     echo
-    echo "Usage: $0 [-w] [-n (0|1|2|3)] FILE1 [FILE2 ...]"
+    echo "Usage: $0 [-r (avif|webp)] [-n (0|1|2|3)] FILE1 [FILE2 ...]"
     echo
     echo "Reduces the size of Comic Book and ePub archives by optimizing the images, fonts, HTML and CSS data and by using a high level of compression."
     echo
     echo "Options:"
-    echo "  -w            Recompress images to WebP in Comic Book archives to further reduce size. May cause quality loss."
-    echo "                Not supported for ePub files."
-    echo "  -n (0|1|2|3)  Remove JPEG artifacts using the Waifu2x algorithm before recompressing to WebP. Values 1, 2 and 3"
-    echo "                correspond respectively to a low, medium or high filtering strength. A value of 0 (default) will"
-    echo "                disable filtering. Requires using -w to have an effect."
+    echo "  -r (avif|webp)  Recompress images in Comic Book archives to further reduce size. May cause quality loss."
+    echo "                  Not supported for ePub files."
+    echo "  -n (0|1|2|3)    Remove JPEG artifacts using the Waifu2x algorithm before recompressing to WebP. Values 1, 2 and 3"
+    echo "                  correspond respectively to a low, medium or high filtering strength. A value of 0 (default) will"
+    echo "                  disable filtering. Requires using -w to have an effect."
     echo
     echo "Environment Variables:"
     echo
@@ -377,13 +402,17 @@ optibook.main() {
     local totalOriginalSize=0
     local totalOptimizedSize=0
 
-    local CONVERT_TO_WEBP=0
+    local CONVERSION_FORMAT=""
     local WAIFU2X_NOISE_LEVEL=0
 
-    while getopts "wn:" option; do
+    while getopts "r:n:" option; do
         case "${option}" in
-            w)
-                CONVERT_TO_WEBP=1
+            r)
+                if [[ "$OPTARG" != "avif" ]] && [[ "$OPTARG" != "webp" ]]; then
+                    echo "-r: supported formats are avif, webp"
+                    optibook.usage
+                fi
+                CONVERSION_FORMAT="$OPTARG"
                 ;;
             n)
                 WAIFU2X_NOISE_LEVEL="$OPTARG"
@@ -403,7 +432,7 @@ optibook.main() {
         optibook.usage
     fi
 
-    export CONVERT_TO_WEBP
+    export CONVERSION_FORMAT
     export WAIFU2X_NOISE_LEVEL
 
     local f
