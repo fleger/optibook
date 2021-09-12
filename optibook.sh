@@ -27,6 +27,18 @@ OPTIBOOK_GIT_HASH='$Format:%H$'
 OPTIBOOK_GIT_REFNAMES='$Format:%d$'
 OPTIBOOK_GIT_DATE='$Format:%ci$'
 
+AVIFENC_OPTS_DEFAULT='-s 4 -a tune=ssim -d 10'
+CWEBP_OPTS_DEFAULT='-preset drawing -mt -m 6 -q 88 -sharp_yuv'
+JPEGTRAN_OPTS_DEFAULT='-optimize -copy none'
+
+: ${AVIFENC_OPTS:=$AVIFENC_OPTS_DEFAULT}
+: ${CWEBP_OPTS:=$CWEBP_OPTS_DEFAULT}
+: ${JPEGTRAN_OPTS:=$JPEGTRAN_OPTS_DEFAULT}
+
+export AVIFENC_OPTS
+export CWEBP_OPTS
+export JPEGTRAN_OPTS
+
 shopt -s globstar extglob nocaseglob
 shopt -u failglob
 
@@ -202,7 +214,7 @@ optibook.optijpg() {
     local f
     for f; do
         if optibook.checkFileType "$f" "image/jpeg" ; then
-            jpegtran -optimize -outfile "$f" -copy none "$f"
+            jpegtran $JPEGTRAN_OPTS -outfile "$f" "$f"
         fi
     done
 }
@@ -242,7 +254,7 @@ optibook.convertWebP() {
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
             mv "$f" "$tmpfile"
             local dest="${f%.*}.webp"
-            if cwebp -preset drawing -mt -m 6 -q 88 -sharp_yuv  "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
+            if cwebp $CWEBP_OPTS "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
                 rm "$tmpfile"
             else
                 if [[ -f "$dest" ]]; then
@@ -261,7 +273,7 @@ optibook.convertAVIF() {
             local tmpfile="$(mktemp --tmpdir "optibook.XXXXXX.${f##*.}")"
             mv "$f" "$tmpfile"
             local dest="${f%.*}.avif"
-            if avifenc -a tune=ssim -d 10 "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
+            if avifenc $AVIFENC_OPTS "$tmpfile" -o "$dest" && [[ $(optibook.size "$dest") -lt $(optibook.size "$tmpfile") ]]; then
                 rm "$tmpfile"
             else
                 if [[ -f "$dest" ]]; then
@@ -397,6 +409,9 @@ optibook.usage() {
     echo "  OPTIBOOK_THREADS=n      Forces optibook to use n threads during the optimization and recompression steps."
     echo "  OPTIBOOK_NO_PARALLEL    If set prevent optibook from using GNU parallel during the optimization step."
     echo "  OPTIBOOK_LOG=file       Write logs to file."
+    echo "  AVIFENC_OPTS            Options to pass to avifenc. Defaults: $AVIFENC_OPTS_DEFAULT"
+    echo "  CWEBP_OPTS              Options to pass to cwebp. Defaults: $CWEBP_OPTS_DEFAULT"
+    echo "  JPEGTRAN_OPTS           Options to pass to jpegtran. Defaults: $JPEGTRAN_OPTS_DEFAULT"
     echo
     exit 1
 }
