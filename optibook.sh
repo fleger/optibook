@@ -17,7 +17,7 @@
 #   - python-fonttools
 #   - minify
 #   - cwebp from libwebp
-#   - waifu2x-converter-cpp
+#   - waifu2x-ncnn-vulkan
 #   - avifenc from libavif
 
 # Optional dependencies:
@@ -289,7 +289,7 @@ optibook.cleanUpJpegs() {
     local f
     for f in "$1"/**/*.{jpg,jpeg}; do
         if optibook.checkFileType "$f" "image/jpeg"; then
-            if waifu2x-converter-cpp -m noise --noise-level "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
+            if waifu2x-ncnn-vulkan -s 1 -n "$WAIFU2X_NOISE_LEVEL" -i "$f" -o "${f%.*}.png"; then
                 rm "$f"
             fi
         fi
@@ -402,7 +402,7 @@ optibook.usage() {
     echo "                  Not supported for ePub files."
     echo "  -n (0|1|2|3)    Remove JPEG artifacts using the Waifu2x algorithm before recompressing to WebP. Values 1, 2 and 3"
     echo "                  correspond respectively to a low, medium or high filtering strength. A value of 0 (default) will"
-    echo "                  disable filtering. Requires using -w to have an effect."
+    echo "                  disable filtering. Requires using -r to have an effect."
     echo
     echo "Environment Variables:"
     echo

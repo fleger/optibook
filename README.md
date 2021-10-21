@@ -43,7 +43,7 @@ Complete syntax can be obtained by running optibook without argument.
 * [fonttools](https://github.com/fonttools/fonttools)
 * [minify](https://github.com/tdewolff/minify)
 * cwebp from [libwebp](https://chromium.googlesource.com/webm/libwebp/)
-* [waifu2x-converter-cpp](https://github.com/DeadSix27/waifu2x-converter-cpp)
+* [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan)
 * avifenc from [libavif](https://github.com/AOMediaCodec/libavif)
 
 
