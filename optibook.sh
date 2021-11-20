@@ -400,7 +400,7 @@ optibook.usage() {
     echo "Options:"
     echo "  -r (avif|webp)  Recompress images in Comic Book archives to further reduce size. May cause quality loss."
     echo "                  Not supported for ePub files."
-    echo "  -n (0|1|2|3)    Remove JPEG artifacts using the Waifu2x algorithm before recompressing to WebP. Values 1, 2 and 3"
+    echo "  -n (0|1|2|3)    Remove JPEG artifacts using the Waifu2x algorithm before recompressing. Values 1, 2 and 3"
     echo "                  correspond respectively to a low, medium or high filtering strength. A value of 0 (default) will"
     echo "                  disable filtering. Requires using -r to have an effect."
     echo
